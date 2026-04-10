@@ -15,6 +15,18 @@
   let links = [];
   let downloading = false;
 
+  // Load cached subfolder
+  chrome.storage.local.get("subfolder", (data) => {
+    if (data.subfolder) {
+      subfolderEl.value = data.subfolder;
+    }
+  });
+
+  // Save subfolder on change
+  subfolderEl.addEventListener("input", () => {
+    chrome.storage.local.set({ subfolder: subfolderEl.value.trim() });
+  });
+
   async function scanCurrentTab() {
     try {
       const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });

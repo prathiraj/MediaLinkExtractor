@@ -84,46 +84,78 @@
           return;
         }
 
-        const listener = (delta) => {
-          if (delta.id !== downloadId) return;
+        function onComplete() {
+          succeededCount++;
+          broadcastToPopup({
+            action: "downloadProgress",
+            current,
+            total: totalCount,
+            filename: link.filename,
+            status: "Complete",
+            linkIndex: link.originalIndex
+          });
+          const remaining = totalCount - current;
+          if (remaining > 0) {
+            chrome.action.setBadgeText({ text: `${remaining}` });
+          }
+          currentIndex++;
+          downloadNext();
+        }
 
+        function onFailed() {
+          broadcastToPopup({
+            action: "downloadProgress",
+            current,
+            total: totalCount,
+            filename: link.filename,
+            status: "Failed",
+            linkIndex: link.originalIndex
+          });
+          currentIndex++;
+          downloadNext();
+        }
+
+        let resolved = false;
+
+        const listener = (delta) => {
+          if (delta.id !== downloadId || resolved) return;
           if (delta.state) {
             if (delta.state.current === "complete") {
+              resolved = true;
               chrome.downloads.onChanged.removeListener(listener);
-              succeededCount++;
-              broadcastToPopup({
-                action: "downloadProgress",
-                current,
-                total: totalCount,
-                filename: link.filename,
-                status: "Complete",
-                linkIndex: link.originalIndex
-              });
-
-              const remaining = totalCount - current;
-              if (remaining > 0) {
-                chrome.action.setBadgeText({ text: `${remaining}` });
-              }
-
-              currentIndex++;
-              downloadNext();
+              onComplete();
             } else if (delta.state.current === "interrupted") {
+              resolved = true;
               chrome.downloads.onChanged.removeListener(listener);
-              broadcastToPopup({
-                action: "downloadProgress",
-                current,
-                total: totalCount,
-                filename: link.filename,
-                status: "Failed",
-                linkIndex: link.originalIndex
-              });
-              currentIndex++;
-              downloadNext();
+              onFailed();
             }
           }
         };
 
         chrome.downloads.onChanged.addListener(listener);
+
+        // Safety check: poll download status in case onChanged was missed
+        const pollInterval = setInterval(() => {
+          if (resolved) {
+            clearInterval(pollInterval);
+            return;
+          }
+          chrome.downloads.search({ id: downloadId }, (results) => {
+            if (resolved || !results || results.length === 0) return;
+            const state = results[0].state;
+            if (state === "complete") {
+              resolved = true;
+              clearInterval(pollInterval);
+              chrome.downloads.onChanged.removeListener(listener);
+              onComplete();
+            } else if (state === "interrupted") {
+              resolved = true;
+              clearInterval(pollInterval);
+              chrome.downloads.onChanged.removeListener(listener);
+              onFailed();
+            }
+          });
+        }, 2000);
       }
     );
   }
