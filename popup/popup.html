@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="header">
+    <h1>Media Link Extractor</h1>
+    <div id="status" class="status">Scanning page…</div>
+  </div>
+
+  <div id="toolbar" class="toolbar hidden">
+    <label class="select-all">
+      <input type="checkbox" id="selectAll"> Select All
+    </label>
+    <span id="count" class="count"></span>
+  </div>
+
+  <div id="linkList" class="link-list"></div>
+
+  <div id="emptyState" class="empty-state hidden">
+    <p>No video links found on this page.</p>
+  </div>
+
+  <div id="downloadBar" class="download-bar hidden">
+    <div class="folder-row">
+      <label for="subfolder" class="folder-label">📁 Save to Downloads\</label>
+      <input type="text" id="subfolder" class="folder-input" placeholder="subfolder (optional)">
+    </div>
+    <div class="download-actions">
+      <button id="downloadBtn" class="download-btn">
+        ⬇ Download Selected
+      </button>
+      <div id="downloadStatus" class="download-status"></div>
+    </div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
